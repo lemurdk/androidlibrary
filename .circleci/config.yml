@@ -5,8 +5,11 @@
 version: 2
 jobs:
   build:
+    parallelism: 2
+   
     docker:
       # specify the version you desire here
+      - image: circleci/openjdk:8-jdk
       - image: circleci/android:api-25
 
       # Specify service dependencies here if necessary
@@ -20,7 +23,10 @@ jobs:
       # Customize the JVM maximum heap limit
       JVM_OPTS: -Xmx4096m
       TERM: dumb
-
+      # Configure the JVM and Gradle to avoid OOM errors
+      _JAVA_OPTIONS: "-Xmx3g"
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+      
     steps:
       - checkout
 
@@ -31,12 +37,14 @@ jobs:
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
 
-      - run: gradle dependencies
-
+      # - run: gradle dependencies
+      - run: gradlew clean assemble
       - save_cache:
           paths:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle" }}
+
+      
 
       # run tests!
       - run: gradle test
